@@ -48,7 +48,6 @@ data <- subset(data, select = -c(Set, Id, language.x))
 ### XGB Tree Model
 tr = trainControl(method="repeatedcv", number=5, repeats=5, search="grid", verboseIter=TRUE)
 xgbTreeGrid <- expand.grid(nrounds = c(1, 10),
-                       ntrees = (1:10)*50,
                        max_depth = c(1, 4),
                        eta = c(.1, .4),
                        gamma = 0,
