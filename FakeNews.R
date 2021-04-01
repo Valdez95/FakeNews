@@ -39,22 +39,21 @@ library(tidyverse)
 library(rpart)
 library(adabag)
 
-df <- vroom::vroom("~/Desktop/Kaggle/FakeNews/CleanFakeNews.csv")
+df <- vroom::vroom("~/Desktop/Kaggle/FakeNews/Data/CleanFakeNews.csv")
 df$isFake <- as.factor(df$isFake)
 
 data <- df %>% filter(Set=="train")
 data <- subset(data, select = -c(Set, Id, language.x)) 
 
 ### XGB Tree Model
-tr = trainControl(method="repeatedcv", number=5, repeats=5, search="grid", verboseIter=TRUE)
-xgbTreeGrid <- expand.grid(nrounds = c(1, 10),
-                       max_depth = c(1, 4),
-                       eta = c(.1, .4),
-                       gamma = 0,
+tr = trainControl(method="repeatedcv", number=3, repeats=3, search="grid", verboseIter=TRUE)
+xgbTreeGrid <- expand.grid(nrounds = 20,
+                       max_depth = 20,
+                       eta = 0.5,
+                       gamma = 1,
                        colsample_bytree = .7,
                        min_child_weight = 1,
-                       subsample = c(.8, 1)) 
-
+                       subsample = 1) 
 ## Parallelization
 cl <- parallel::makeCluster(4, setup_strategy = "sequential")
 news.model <- train(form=isFake~.,
@@ -73,3 +72,26 @@ write.csv(x=submission, row.names=FALSE, file="~/Kaggle/FakeNews/submissions.csv
 
 #fake.adaboost <- boosting(isFake~., data = data, boos=TRUE, mfinal=3)
 #importanceplot(fake.adaboost)
+
+
+
+## Use stemmed and lemmatized data set 
+X <- vroom::vroom("~/Desktop/Kaggle/FakeNews/Data/embedded.csv")
+y <- data.frame(df %>% filter(Set=="train") %>% pull(isFake))
+names(y)[1] <- "isFake"
+X$isFake <- y
+X$isFake <- as.factor(y$isFake)
+
+news.model <- train(form=isFake~.,
+                             data = X,
+                             method = "xgbTree",
+                             metric = "Accuracy",
+                             tuneGrid = xgbTreeGrid,
+                             trControl=tr)
+
+test_data <- vroom::vroom("~/Desktop/Kaggle/FakeNews/Data/embedded_test.csv")
+preds <- predict(news.model, newdata=test_data)
+submission <- data.frame(id=df %>% filter(Set=="test") %>% pull(Id),
+                         label=preds)
+write.csv(x=submission, row.names=FALSE, file="~/Desktop/Kaggle/FakeNews/submissions.csv")
+
