@@ -1,4 +1,5 @@
 # FakeNews
+https://www.kaggle.com/c/fake-news/overview
 
 ## Purpose
 The purpose of this project is to build a system to identify unreliable news articles. This is based off of the Kaggle Fake News Competition.
